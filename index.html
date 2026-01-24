@@ -32,22 +32,22 @@
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h1 class="text-3xl font-bold text-gray-800 mb-1">寒居酒店客衣收送管理系統</h1>
                 
-                <!-- 服務說明 - 直接顯示在標題下方 -->
+                <!-- 服務說明 -->
                 <div class="bg-blue-50 rounded-lg p-4 mb-6 text-sm">
                     <div class="space-y-2">
                         <div>
                             <span class="font-bold text-blue-600">＊洗衣服務</span>
-                            <span class="text-gray-700 ml-2">中午12時前收件，當日下午8時前送回</span>
+                            <span class="text-gray-700 ml-2">中午12時前收件,當日下午8時前送回</span>
                             <span class="text-gray-700 ml-2">｜</span>
-                            <span class="text-gray-700 ml-2">下午6時前收件，隔日中午11時前送回</span>
+                            <span class="text-gray-700 ml-2">下午6時前收件,隔日中午11時前送回</span>
                         </div>
                         <div>
                             <span class="font-bold text-orange-600">＊快洗服務</span>
-                            <span class="text-gray-700 ml-2">上午8時至下午4時前收件，4小時內送回（另加費用50%）</span>
+                            <span class="text-gray-700 ml-2">上午8時至下午4時前收件,4小時內送回(另加費用50%)</span>
                         </div>
                         <div>
                             <span class="font-bold text-purple-600">＊快速整燙</span>
-                            <span class="text-gray-700 ml-2">上午8時至下午4時前收件，2小時內送回（另加費用50%）</span>
+                            <span class="text-gray-700 ml-2">上午8時至下午4時前收件,2小時內送回(另加費用50%)</span>
                         </div>
                     </div>
                 </div>
@@ -94,7 +94,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">房號 *</label>
-                        <input type="text" id="roomNumber" placeholder="例：1001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="roomNumber" placeholder="例:1001" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">收取時間</label>
@@ -113,11 +113,11 @@
                         <input type="time" id="returnTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">掛（件數）</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">掛(件數)</label>
                         <input type="number" id="hangCount" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">包（件數）</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">包(件數)</label>
                         <input type="number" id="packageCount" placeholder="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div>
@@ -155,6 +155,14 @@
                     <button onclick="resetForm()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                         取消
                     </button>
+                </div>
+            </div>
+
+            <!-- 月份篩選按鈕區 -->
+            <div id="monthFilterSection" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-sm font-medium text-gray-700">篩選月份:</span>
+                    <div class="flex flex-wrap gap-2" id="monthButtons"></div>
                 </div>
             </div>
 
@@ -196,31 +204,27 @@
 
         let records = [];
         let editingId = null;
+        let selectedMonth = null;
 
         async function loadRecords() {
             try {
                 console.log('開始載入資料...');
-                console.log('使用的 URL:', SCRIPT_URL);
                 
                 const response = await fetch(SCRIPT_URL);
-                console.log('回應狀態:', response.status, response.statusText);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const textData = await response.text();
-                console.log('原始回應內容:', textData);
-                
                 const data = JSON.parse(textData);
-                console.log('解析後的資料:', data);
                 
                 if (data.error) {
                     throw new Error(`Apps Script 錯誤: ${data.error}`);
                 }
                 
                 if (!Array.isArray(data)) {
-                    throw new Error(`資料格式錯誤，收到的不是陣列: ${typeof data}`);
+                    throw new Error(`資料格式錯誤,收到的不是陣列: ${typeof data}`);
                 }
                 
                 records = data.filter(r => r && r.id && r.id !== '');
@@ -233,6 +237,8 @@
                 
                 console.log('✅ 處理後的記錄數量:', records.length);
                 console.log('處理後的記錄:', records);
+                
+                initMonthFilter();
                 renderTable();
             } catch (error) {
                 console.error('❌ 載入資料失敗:', error);
@@ -242,7 +248,7 @@
                             <div class="text-red-500 font-bold mb-2">載入資料失敗</div>
                             <div class="text-sm text-gray-600 mb-2">${error.message}</div>
                             <div class="text-xs text-gray-500">
-                                <p>請檢查：</p>
+                                <p>請檢查:</p>
                                 <p>1. Apps Script URL 是否正確</p>
                                 <p>2. Apps Script 權限設定為「任何人」</p>
                                 <p>3. Google Sheets 第一列是否有正確的欄位標題</p>
@@ -271,7 +277,7 @@
                 return true;
             } catch (error) {
                 console.error('儲存失敗:', error);
-                alert('儲存失敗，請檢查網路連線或稍後再試');
+                alert('儲存失敗,請檢查網路連線或稍後再試');
                 return false;
             }
         }
@@ -336,6 +342,7 @@
                     records.unshift(record);
                 }
                 
+                initMonthFilter();
                 renderTable();
                 resetForm();
                 
@@ -374,12 +381,13 @@
         }
 
         async function deleteRecord(id) {
-            if (!confirm('確定要刪除此記錄嗎？')) return;
+            if (!confirm('確定要刪除此記錄嗎?')) return;
             
             const success = await saveToStorage({id: id}, 'delete');
             
             if (success) {
                 records = records.filter(r => r.id !== id);
+                initMonthFilter();
                 renderTable();
                 
                 setTimeout(async () => {
@@ -428,9 +436,99 @@
             }
         }
 
+        // 初始化月份篩選器
+        function initMonthFilter() {
+            console.log('🔍 開始初始化月份篩選器...');
+            console.log('目前記錄數量:', records.length);
+            
+            // 取得所有不重複的月份
+            const monthSet = new Set();
+            records.forEach(record => {
+                if (record.pickupDate) {
+                    const date = new Date(record.pickupDate);
+                    if (!isNaN(date.getTime())) {
+                        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                        monthSet.add(monthKey);
+                        console.log('找到月份:', monthKey, '來自日期:', record.pickupDate);
+                    }
+                }
+            });
+
+            // 轉換為陣列並排序(新的月份在前)
+            const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+            console.log('所有月份:', months);
+
+            // 如果只有一個或沒有月份,隱藏篩選器
+            if (months.length <= 1) {
+                console.log('⚠️ 只有', months.length, '個月份,隱藏篩選器');
+                document.getElementById('monthFilterSection').classList.add('hidden');
+                selectedMonth = null;
+                return;
+            }
+
+            // 設定預設選擇當月
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            selectedMonth = months.includes(currentMonth) ? currentMonth : months[0];
+            console.log('✅ 選擇的月份:', selectedMonth);
+
+            // 渲染月份按鈕
+            const monthButtons = document.getElementById('monthButtons');
+            monthButtons.innerHTML = months.map(month => {
+                const [year, monthNum] = month.split('-');
+                const monthName = getChineseMonth(parseInt(monthNum));
+                const isActive = month === selectedMonth;
+                
+                return `
+                    <button 
+                        onclick="selectMonth('${month}')"
+                        class="px-4 py-2 rounded-lg transition-colors ${
+                            isActive 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }"
+                    >
+                        ${year}年${monthName}
+                    </button>
+                `;
+            }).join('');
+
+            document.getElementById('monthFilterSection').classList.remove('hidden');
+            console.log('✅ 月份篩選器顯示完成');
+        }
+
+        // 選擇月份
+        function selectMonth(month) {
+            console.log('選擇月份:', month);
+            selectedMonth = month;
+            initMonthFilter();
+            renderTable();
+        }
+
+        // 將數字月份轉換為數字+月
+        function getChineseMonth(month) {
+            return month + '月';
+        }
+
         function renderTable() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = records.filter(r => 
+            
+            // 先依月份篩選
+            let filtered = records;
+            if (selectedMonth) {
+                console.log('依月份篩選:', selectedMonth);
+                filtered = records.filter(r => {
+                    if (!r.pickupDate) return false;
+                    const date = new Date(r.pickupDate);
+                    if (isNaN(date.getTime())) return false;
+                    const recordMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    return recordMonth === selectedMonth;
+                });
+                console.log('月份篩選後記錄數:', filtered.length);
+            }
+            
+            // 再依搜尋條件篩選
+            filtered = filtered.filter(r => 
                 r.roomNumber && r.roomNumber.toString().toLowerCase().includes(searchTerm) ||
                 (r.pickupStaff && r.pickupStaff.toString().toLowerCase().includes(searchTerm)) ||
                 (r.returnStaff && r.returnStaff.toString().toLowerCase().includes(searchTerm))
@@ -439,7 +537,7 @@
             const tbody = document.getElementById('tableBody');
             
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">暫無記錄，請新增第一筆資料</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500">暫無記錄,請新增第一筆資料</td></tr>';
                 document.getElementById('recordCount').textContent = '';
                 return;
             }
@@ -485,7 +583,7 @@
             }).join('');
 
             document.getElementById('recordCount').textContent = `共 ${filtered.length} 筆記錄`;
-            console.log(`渲染完成：顯示 ${filtered.length} 筆記錄`);
+            console.log(`渲染完成:顯示 ${filtered.length} 筆記錄`);
         }
 
         document.getElementById('searchInput').addEventListener('input', renderTable);
