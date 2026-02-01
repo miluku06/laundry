@@ -180,10 +180,7 @@
 
             <!-- 月份篩選按鈕區 -->
             <div id="monthFilterSection" class="bg-white rounded-lg shadow-md p-4 mb-6 hidden">
-                <div class="flex items-center gap-3 mb-2">
-                    <span class="text-sm font-medium text-gray-700">篩選月份:</span>
-                    <div class="flex flex-wrap gap-2" id="monthButtons"></div>
-                </div>
+                <div class="flex flex-wrap gap-2" id="monthButtons"></div>
             </div>
 
             <!-- 表格區 -->
@@ -226,7 +223,7 @@
         let editingId = null;
         let selectedMonth = null;
 
-        // 🔧 修正：加入超時處理的 fetch 函數
+        // 🔧 修正:加入超時處理的 fetch 函數
         async function fetchWithTimeout(url, options = {}, timeout = 30000) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -241,7 +238,7 @@
             } catch (error) {
                 clearTimeout(timeoutId);
                 if (error.name === 'AbortError') {
-                    throw new Error('請求超時，請檢查網路連線或稍後再試');
+                    throw new Error('請求超時,請檢查網路連線或稍後再試');
                 }
                 throw error;
             }
@@ -252,7 +249,6 @@
                 console.log('🔄 開始載入資料...');
                 console.log('📍 API URL:', SCRIPT_URL);
                 
-                // 🔧 修正：使用帶超時的 fetch
                 const response = await fetchWithTimeout(SCRIPT_URL, {}, 30000);
                 
                 console.log('📥 Response status:', response.status);
@@ -265,7 +261,6 @@
                 const textData = await response.text();
                 console.log('📄 收到的原始資料:', textData.substring(0, 500));
                 
-                // 🔧 修正：更安全的 JSON 解析
                 let data;
                 try {
                     data = JSON.parse(textData);
@@ -276,12 +271,10 @@
                 
                 console.log('✅ 解析後的資料:', data);
                 
-                // 🔧 修正：檢查錯誤訊息
                 if (data.error) {
                     throw new Error(`伺服器錯誤: ${data.error}`);
                 }
                 
-                // 🔧 修正：處理空資料的情況
                 if (!data || !Array.isArray(data)) {
                     console.warn('⚠️ 收到的資料不是陣列:', typeof data);
                     records = [];
@@ -289,7 +282,6 @@
                     return;
                 }
                 
-                // 🔧 修正：過濾並排序資料
                 records = data.filter(r => r && r.id && r.id !== '');
                 
                 records.sort((a, b) => {
@@ -301,7 +293,6 @@
                 console.log('✅ 載入成功! 記錄數量:', records.length);
                 console.log('📊 前 3 筆記錄:', records.slice(0, 3));
                 
-                // 🔧 修正：初始化並渲染
                 initMonthFilter();
                 renderTable();
                 
@@ -309,7 +300,6 @@
                 console.error('❌ 載入資料失敗:', error);
                 console.error('錯誤堆疊:', error.stack);
                 
-                // 🔧 修正：顯示更詳細的錯誤訊息
                 const tbody = document.getElementById('tableBody');
                 tbody.innerHTML = `
                     <tr>
@@ -432,7 +422,6 @@
                 renderTable();
                 resetForm();
                 
-                // 延遲重新載入以確保同步
                 setTimeout(async () => {
                     console.log('🔄 重新載入資料以確保同步...');
                     await loadRecords();
@@ -523,11 +512,12 @@
             }
         }
 
+        // 🔧 修正:改進月份篩選邏輯,解決1月記錄無法顯示的問題
         function initMonthFilter() {
             console.log('🔍 初始化月份篩選器...');
             
             if (!records || records.length === 0) {
-                console.log('⚠️ 沒有記錄，隱藏篩選器');
+                console.log('⚠️ 沒有記錄,隱藏篩選器');
                 document.getElementById('monthFilterSection').classList.add('hidden');
                 selectedMonth = null;
                 return;
@@ -540,27 +530,35 @@
                     if (!isNaN(date.getTime())) {
                         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
                         monthSet.add(monthKey);
+                        console.log(`📅 找到記錄月份: ${monthKey} (來自: ${record.pickupDate})`);
                     }
                 }
             });
 
             const months = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-            console.log('📅 找到的月份:', months);
+            console.log('📅 所有月份:', months);
 
-            if (months.length <= 1) {
-                console.log('⚠️ 只有一個月份，隱藏篩選器');
+            // 🔧 修正:即使只有一個月份也顯示篩選器
+            if (months.length === 0) {
+                console.log('⚠️ 沒有有效的月份資料');
                 document.getElementById('monthFilterSection').classList.add('hidden');
                 selectedMonth = null;
                 return;
             }
 
-            const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            selectedMonth = months.includes(currentMonth) ? currentMonth : months[0];
-            console.log('✅ 選擇月份:', selectedMonth);
+            // 🔧 如果當前沒有選中的月份,或選中的月份不在列表中,則選擇最新月份
+            if (!selectedMonth || !months.includes(selectedMonth)) {
+                const now = new Date();
+                const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                selectedMonth = months.includes(currentMonth) ? currentMonth : months[0];
+            }
+            
+            console.log('✅ 當前選擇月份:', selectedMonth);
 
+            // 生成月份按鈕 (不包含「全部」按鈕)
             const monthButtons = document.getElementById('monthButtons');
-            monthButtons.innerHTML = months.map(month => {
+            
+            const monthButtonsHTML = months.map(month => {
                 const [year, monthNum] = month.split('-');
                 const isActive = month === selectedMonth;
                 
@@ -578,11 +576,16 @@
                 `;
             }).join('');
 
-            document.getElementById('monthFilterSection').classList.remove('hidden');
+            monthButtons.innerHTML = monthButtonsHTML;
+            
+            // 🔧 只要有月份就顯示篩選器
+            if (months.length > 0) {
+                document.getElementById('monthFilterSection').classList.remove('hidden');
+            }
         }
 
         function selectMonth(month) {
-            console.log('📅 選擇月份:', month);
+            console.log('📅 選擇月份:', month || '全部');
             selectedMonth = month;
             initMonthFilter();
             renderTable();
@@ -593,15 +596,25 @@
             
             let filtered = records;
             
-            // 月份篩選
+            // 🔧 修正:月份篩選邏輯
             if (selectedMonth) {
+                console.log('🔍 開始篩選月份:', selectedMonth);
                 filtered = filtered.filter(r => {
-                    if (!r.pickupDate) return false;
+                    if (!r.pickupDate) {
+                        console.log('⚠️ 記錄沒有 pickupDate:', r);
+                        return false;
+                    }
                     const date = new Date(r.pickupDate);
-                    if (isNaN(date.getTime())) return false;
+                    if (isNaN(date.getTime())) {
+                        console.log('⚠️ 無效的日期:', r.pickupDate);
+                        return false;
+                    }
                     const recordMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                    return recordMonth === selectedMonth;
+                    const match = recordMonth === selectedMonth;
+                    console.log(`📊 記錄: ${r.pickupDate} -> ${recordMonth}, 符合 ${selectedMonth}? ${match}`);
+                    return match;
                 });
+                console.log(`✅ 篩選後記錄數: ${filtered.length}`);
             }
             
             // 搜尋篩選
@@ -619,7 +632,7 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-                            ${records.length === 0 ? '暫無記錄，請新增第一筆資料' : '找不到符合條件的記錄'}
+                            ${records.length === 0 ? '暫無記錄,請新增第一筆資料' : '找不到符合條件的記錄'}
                         </td>
                     </tr>
                 `;
@@ -661,12 +674,13 @@
                 `;
             }).join('');
 
-            document.getElementById('recordCount').textContent = `共 ${filtered.length} 筆記錄${selectedMonth ? ' (已篩選)' : ''}`;
+            const filterInfo = selectedMonth ? ` (${selectedMonth.replace('-', '年')}月)` : '';
+            document.getElementById('recordCount').textContent = `共 ${filtered.length} 筆記錄${filterInfo}`;
         }
 
-        // 🔧 修正：頁面載入時自動執行
+        // 頁面載入時自動執行
         window.addEventListener('DOMContentLoaded', () => {
-            console.log('🚀 頁面載入完成，開始初始化...');
+            console.log('🚀 頁面載入完成,開始初始化...');
             loadRecords();
         });
     </script>
